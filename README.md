@@ -1,5 +1,5 @@
-Nome dos Membros participantes do trabalho:
+**Nome dos Membros participantes do trabalho:**
 
-Luciano Souza Peixoto,
-Felipe de Oliveira Souza,
-Ryan Oliveira Moscardini,
+Luciano Souza Peixoto<br>
+Felipe de Oliveira Souza<br>
+Ryan Oliveira Moscardini
