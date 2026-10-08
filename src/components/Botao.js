@@ -1,4 +1,4 @@
-import { Pressable, Text, StyleSheet } from "react-native";
+import { Pressable, Text, Animated, StyleSheet } from "react-native";
 
 const CORES = [
   "#FACC15",
@@ -9,38 +9,60 @@ const CORES = [
   "#FFFFFF",
 ];
 
-export default function Botao({ label, onPress, tipo, bagunca }) {
+export default function Botao({
+  label,
+  onPress,
+  onSegurar,
+  tipo,
+  bagunca,
+  estrela,
+  movimento,
+}) {
   const corAleatoria = CORES[Math.floor(Math.random() * CORES.length)];
 
   return (
-    <Pressable
-      style={({ pressed }) => [
-        styles.botao,
-        styles[tipo],
-        bagunca && { backgroundColor: corAleatoria },
-        pressed && styles.pressionado,
-      ]}
-      onPress={() => onPress(label)}
+    <Animated.View
+      style={[styles.caixa, tipo === "funcao" && styles.caixaFuncao, movimento]}
     >
-      <Text
-        style={[
-          styles.texto,
-          styles["texto_" + tipo],
-          bagunca && { color: "#000000" },
+      <Pressable
+        style={({ pressed }) => [
+          styles.botao,
+          styles[tipo],
+          bagunca && { backgroundColor: corAleatoria },
+          estrela && styles.estrela,
+          pressed && styles.pressionado,
         ]}
+        onPress={() => onPress(label)}
+        onLongPress={onSegurar ? () => onSegurar(label) : undefined}
       >
-        {label}
-      </Text>
-    </Pressable>
+        <Text
+          style={[
+            styles.texto,
+            styles["texto_" + tipo],
+            bagunca && { color: "#000000" },
+            estrela && styles.texto_estrela,
+          ]}
+        >
+          {estrela ? "★" : label}
+        </Text>
+      </Pressable>
+    </Animated.View>
   );
 }
 
 const styles = StyleSheet.create({
+  caixa: {
+    width: "22%",
+  },
+
+  caixaFuncao: {
+    width: "18%",
+  },
+
   botao: {
     backgroundColor: "#1A1A1A",
     borderRadius: 20,
     height: 64,
-    width: "22%",
     alignItems: "center",
     justifyContent: "center",
   },
@@ -52,7 +74,6 @@ const styles = StyleSheet.create({
     borderColor: "#2B2B2B",
     borderRadius: 14,
     height: 40,
-    width: "18%",
   },
 
   // AC, C-, +/- e %
@@ -66,6 +87,11 @@ const styles = StyleSheet.create({
 
   igual: {
     backgroundColor: "#FACC15",
+  },
+
+  estrela: {
+    backgroundColor: "transparent",
+    borderWidth: 0,
   },
 
   pressionado: {
@@ -92,6 +118,11 @@ const styles = StyleSheet.create({
 
   texto_operador: {
     fontSize: 28,
+    color: "#FACC15",
+  },
+
+  texto_estrela: {
+    fontSize: 48,
     color: "#FACC15",
   },
 

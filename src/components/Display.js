@@ -21,11 +21,16 @@ export default function Display({
       </Text>
 
       <Text
-        style={[styles.resultado, resultado === "Erro" && styles.erro]}
+        style={[
+          styles.resultado,
+          (resultado === "Erro" || resultado === "Número feio") && styles.erro,
+        ]}
         numberOfLines={1}
         adjustsFontSizeToFit
       >
-        {temResultado ? "= " + resultado : ""}
+        {temResultado && !isNaN(Number(resultado))
+          ? "= " + resultado
+          : resultado}
       </Text>
 
       <Text style={styles.mensagem} numberOfLines={1} adjustsFontSizeToFit>

@@ -10,6 +10,11 @@ import {
 } from "react-native";
 import Display from "../components/Display";
 import Teclado from "../components/Teclado";
+import Terminal from "../components/Terminal";
+import SeisSete from "../components/SeisSete";
+import SessentaNove from "../components/SessentaNove";
+import VinteDois from "../components/VinteDois";
+import Missao from "../components/Missao";
 import { carregar, salvar } from "../storage/historico";
 
 const OPERADORES = ["+", "-", "X", "/"];
@@ -84,6 +89,13 @@ export default function HomeScreen({ navigation }) {
   const [mensagem, setMensagem] = useState("");
   const [bagunca, setBagunca] = useState(false);
   const [, setRodada] = useState(0);
+  const [azar, setAzar] = useState(false);
+  const tempoAzar = useRef(null);
+  const [fase, setFase] = useState("");
+  const [seisSete, setSeisSete] = useState(false);
+  const [nice, setNice] = useState(false);
+  const [mito, setMito] = useState(false);
+  const [missao, setMissao] = useState("");
   const toquesOff = useRef({ qtd: 0, ultimo: 0 });
   const tremor = useRef(new Animated.Value(0)).current;
 
@@ -98,6 +110,20 @@ export default function HomeScreen({ navigation }) {
     const id = setInterval(() => setRodada((r) => r + 1), 150);
     return () => clearInterval(id);
   }, [bagunca]);
+
+  // visor "quebrado" enquanto os botoes caem
+  useEffect(() => {
+    if (fase !== "queda") return;
+    const simbolos = "#@$%&*!?01ΣΔπ∞≠÷";
+    const id = setInterval(() => {
+      let texto = "";
+      for (let i = 0; i < 18; i++) {
+        texto += simbolos[Math.floor(Math.random() * simbolos.length)];
+      }
+      setExpressao(texto);
+    }, 90);
+    return () => clearInterval(id);
+  }, [fase]);
 
   function aoDesligar() {
     const agora = Date.now();
@@ -118,9 +144,17 @@ export default function HomeScreen({ navigation }) {
     setMensagem(frase);
     setBagunca(true);
     Vibration.vibrate([0, 200, 100, 200, 100, 400]);
+    tremer(8);
 
+    setTimeout(() => {
+      setBagunca(false);
+      setMensagem("tá bom, voltei ao normal 😌");
+    }, 3500);
+  }
+
+  function tremer(vezes) {
     const balancos = [];
-    for (let i = 0; i < 8; i++) {
+    for (let i = 0; i < vezes; i++) {
       balancos.push(
         Animated.timing(tremor, {
           toValue: i % 2 === 0 ? 1 : -1,
@@ -137,15 +171,70 @@ export default function HomeScreen({ navigation }) {
       }),
     );
     Animated.sequence(balancos).start();
+  }
+
+  function travarTudo() {
+    setFase("queda");
+    setResultado("");
+    setMensagem("⚠ ALERTA: perda de gravidade detectada");
+    Vibration.vibrate([0, 80, 60, 80, 60, 80, 60, 900]);
+    tremer(14);
 
     setTimeout(() => {
-      setBagunca(false);
-      setMensagem("tá bom, voltei ao normal 😌");
-    }, 3500);
+      setFase("terminal");
+      setExpressao("");
+      setMensagem("");
+      navigation.setOptions({ headerShown: false });
+    }, 2400);
+  }
+
+  // festa -> calculadora explode -> mensagem final
+  function comecarMissao() {
+    setResultado("14");
+    setMissao("festa");
+    Vibration.vibrate([0, 150, 100, 150, 100, 150]);
+
+    setTimeout(() => {
+      setMissao("explosao");
+      setExpressao("");
+      setResultado("");
+      tremer(16);
+      Vibration.vibrate(900);
+    }, 4000);
+
+    setTimeout(() => setMissao("final"), 5600);
+  }
+
+  function voltarAoNormal() {
+    navigation.setOptions({ headerShown: true });
+    setFase("");
+    setMensagem("Bem-vindo de volta 🚀");
+    Vibration.vibrate(100);
+  }
+
+  function numeroFeio() {
+    setResultado("Número feio");
+    setAzar(true);
+    Vibration.vibrate(600);
+    navigation.setOptions({ headerStyle: { backgroundColor: "#D90429" } });
+
+    clearTimeout(tempoAzar.current);
+    tempoAzar.current = setTimeout(acabarAzar, 3000);
+  }
+
+  function acabarAzar() {
+    clearTimeout(tempoAzar.current);
+    setAzar(false);
+    navigation.setOptions({ headerStyle: { backgroundColor: "#000000" } });
+  }
+
+  // "Erro" e "Número feio" nao sao numeros, entao nao da pra continuar a conta
+  function resultadoValido() {
+    return resultado !== "" && !isNaN(Number(resultado));
   }
 
   function valorAtual() {
-    if (resultado && resultado !== "Erro") return Number(resultado);
+    if (resultadoValido()) return Number(resultado);
     return calcular(expressao);
   }
 
@@ -159,9 +248,24 @@ export default function HomeScreen({ navigation }) {
     setResultado("");
   }
 
+  // segurar o MRC puxa o numero guardado na memoria
+  function aoSegurar(tecla) {
+    if (tecla !== "MRC" || fase || missao) return;
+    const ultimaTecla = expressao.slice(-1);
+    if (OPERADORES.includes(ultimaTecla)) {
+      setExpressao(expressao + formatar(memoria));
+    } else {
+      setExpressao(formatar(memoria));
+    }
+    setResultado("");
+    Vibration.vibrate(30);
+  }
+
   function aoTocar(tecla) {
+    if (fase || missao) return;
     const ultimaTecla = expressao.slice(-1);
     if (mensagem && tecla !== "OFF") setMensagem("");
+    if (azar) acabarAzar();
 
     if (tecla === "AC") {
       setExpressao("");
@@ -187,15 +291,10 @@ export default function HomeScreen({ navigation }) {
     } else if (tecla === "M-") {
       if (expressao) setMemoria(memoria - valorAtual());
     } else if (tecla === "MRC") {
-      if (OPERADORES.includes(ultimaTecla)) {
-        setExpressao(expressao + formatar(memoria));
-      } else {
-        setExpressao(formatar(memoria));
-      }
-      setResultado("");
+      navigation.navigate("Meme");
     } else if (OPERADORES.includes(tecla)) {
       // continua a conta a partir do resultado anterior
-      if (resultado && resultado !== "Erro") {
+      if (resultadoValido()) {
         setExpressao(resultado + tecla);
         setResultado("");
       } else if (expressao === "" && tecla !== "-") {
@@ -219,6 +318,57 @@ export default function HomeScreen({ navigation }) {
   // aoIgual agora é async e salva a cada conta
   async function aoIgual() {
     if (!expressao || resultado) return;
+
+    if (expressao === "13") {
+      numeroFeio();
+      return;
+    }
+
+    if (expressao === "88224646") {
+      travarTudo();
+      return;
+    }
+
+    if (expressao === "55555") {
+      setExpressao("");
+      navigation.navigate("Cobrinha");
+      return;
+    }
+
+    if (expressao === "64") {
+      setExpressao("");
+      navigation.navigate("Minecraft");
+      return;
+    }
+
+    if (expressao === "157") {
+      setExpressao("");
+      navigation.navigate("Gta");
+      return;
+    }
+
+    if (expressao === "14") {
+      comecarMissao();
+      return;
+    }
+
+    if (expressao === "22") {
+      setResultado("22");
+      setMito(true);
+      return;
+    }
+
+    if (expressao === "69") {
+      setResultado("69");
+      setNice(true);
+      return;
+    }
+
+    if (expressao === "67") {
+      setResultado("67");
+      setSeisSete(true);
+      return;
+    }
 
     const valor = formatar(calcular(expressao));
     setResultado(valor);
@@ -249,7 +399,7 @@ export default function HomeScreen({ navigation }) {
   }
 
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, azar && styles.telaVermelha]}>
       <Display
         expressao={expressao}
         resultado={resultado}
@@ -275,7 +425,14 @@ export default function HomeScreen({ navigation }) {
           ],
         }}
       >
-        <Teclado onPress={aoTocar} bagunca={bagunca} />
+        <Teclado
+          onPress={aoTocar}
+          onSegurar={aoSegurar}
+          bagunca={bagunca}
+          estrela={azar}
+          caindo={fase !== ""}
+          explodindo={missao === "explosao" || missao === "final"}
+        />
       </Animated.View>
 
       <View style={styles.acoes}>
@@ -285,7 +442,9 @@ export default function HomeScreen({ navigation }) {
             styles.verHistorico,
             pressed && styles.pressionado,
           ]}
-          onPress={() => navigation.navigate("Historico", { historico })}
+          onPress={() =>
+            !fase && !missao && navigation.navigate("Historico", { historico })
+          }
         >
           <Text style={[styles.textAcao, styles.textVerHistorico]}>
             Ver histórico
@@ -309,6 +468,12 @@ export default function HomeScreen({ navigation }) {
           <Text style={[styles.textAcao, styles.textLimpar]}>Limpar</Text>
         </Pressable>
       </View>
+
+      {fase === "terminal" && <Terminal onFim={voltarAoNormal} />}
+      {seisSete && <SeisSete onFim={() => setSeisSete(false)} />}
+      {nice && <SessentaNove onFim={() => setNice(false)} />}
+      {mito && <VinteDois onFim={() => setMito(false)} />}
+      <Missao fase={missao} onFim={() => setMissao("")} />
     </View>
   );
 }
@@ -321,6 +486,10 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     paddingBottom: 24,
     paddingHorizontal: 16,
+  },
+
+  telaVermelha: {
+    backgroundColor: "#D90429",
   },
 
   acoes: {
