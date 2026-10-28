@@ -6,6 +6,10 @@ export async function salvar(lista) {
   await AsyncStorage.setItem(CHAVE, JSON.stringify(lista));
 }
 
+export async function limpar() {
+  await AsyncStorage.removeItem(CHAVE);
+}
+
 export async function carregar() {
   const texto = await AsyncStorage.getItem(CHAVE);
   return texto ? JSON.parse(texto) : [];
