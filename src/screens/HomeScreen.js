@@ -10,7 +10,7 @@ import {
 } from "react-native";
 import Display from "../components/Display";
 import Teclado from "../components/Teclado";
-import { carregar, salvar } from "../storage/historico";
+import { carregar, limpar, salvar } from "../storage/historico";
 
 const OPERADORES = ["+", "-", "X", "/"];
 
@@ -76,7 +76,7 @@ function formatar(numero) {
   return String(parseFloat(numero.toFixed(10)));
 }
 
-export default function HomeScreen({ navigation }) {
+export default function HomeScreen({ navigation, route }) {
   const [expressao, setExpressao] = useState("");
   const [resultado, setResultado] = useState("");
   const [historico, setHistorico] = useState([]);
@@ -87,10 +87,23 @@ export default function HomeScreen({ navigation }) {
   const toquesOff = useRef({ qtd: 0, ultimo: 0 });
   const tremor = useRef(new Animated.Value(0)).current;
 
-  // carrega uma vez, quando a tela abre
+  // atualiza a lista depois de voltar do histórico
   useEffect(() => {
-    carregar().then(setHistorico);
-  }, []);
+    const atualizarHistorico = () => {
+      carregar().then(setHistorico);
+    };
+    const unsubscribe = navigation.addListener("focus", atualizarHistorico);
+    return unsubscribe;
+  }, [navigation]);
+
+  // recebe o resultado selecionado no histórico
+  useEffect(() => {
+    const valor = route.params?.valor;
+    if (valor === undefined) return;
+
+    setExpressao(route.params?.conta ?? String(valor));
+    setResultado(String(valor));
+  }, [route.params?.valor, route.params?.reutilizacaoId]);
 
   // enquanto durar, redesenha o teclado varias vezes por segundo
   useEffect(() => {
@@ -236,7 +249,7 @@ export default function HomeScreen({ navigation }) {
 
   async function limparHistorico() {
     setHistorico([]);
-    await salvar([]);
+    await limpar();
   }
 
   function confirmarLimpeza() {
